@@ -66,38 +66,134 @@ move oc-ai.exe "$env:USERPROFILE\bin"
 )
 ```
 
-## 📋 Detailed Usage Guide
+## 📋 Use Cases and Examples
 
-### Basic Commands
+### 1. Basic Resource Management
 
 ```bash
-# Linux/macOS
-oc-ai ai "list all pods that have crashed in the last hour"
-oc-ai ai "scale the frontend deployment to 3 replicas"
+# List resources
+oc-ai ai "show all pods in the development namespace"
+> Command: oc get pods -n development
+> Safety: 1/5 (Safe - Read-only)
 
-# Windows (PowerShell/CMD)
-oc-ai.exe ai "list all pods that have crashed in the last hour"
-oc-ai.exe ai "scale the frontend deployment to 3 replicas"
+# Resource creation
+oc-ai ai "create a new deployment named frontend with nginx image and 3 replicas"
+> Command: oc create deployment frontend --image=nginx --replicas=3
+> Safety: 3/5 (Medium - Resource modification)
+
+# Resource modification
+oc-ai ai "scale the frontend deployment to 5 replicas"
+> Command: oc scale deployment frontend --replicas=5
+> Safety: 3/5 (Medium - Resource modification)
 ```
 
-### Using Custom Kubeconfig
+### 2. Troubleshooting and Debugging
 
 ```bash
-# Linux/macOS
+# Pod issues
+oc-ai ai "show logs from crashed pods in the last hour"
+> Command: oc get pods --field-selector=status.phase=Failed --sort-by=.status.startTime | tail
+> Safety: 1/5 (Safe - Read-only)
+
+# Resource issues
+oc-ai ai "find pods that are pending due to insufficient resources"
+> Command: oc get pods --field-selector=status.phase=Pending -o json | jq '.items[] | select(.status.conditions[] | select(.reason=="Unschedulable"))'
+> Safety: 1/5 (Safe - Read-only)
+```
+
+### 3. Configuration Management
+
+```bash
+# ConfigMaps and Secrets
+oc-ai ai "create a configmap from file config.properties"
+> Command: oc create configmap app-config --from-file=config.properties
+> Safety: 2/5 (Low - Resource creation)
+
+# Resource quotas
+oc-ai ai "show resource quotas in dev namespace"
+> Command: oc get resourcequota -n dev
+> Safety: 1/5 (Safe - Read-only)
+```
+
+### 4. Security and Access Control
+
+```bash
+# RBAC management
+oc-ai ai "create role for read-only access to pods"
+> Command: oc create role pod-reader --verb=get,list,watch --resource=pods
+> Safety: 3/5 (Medium - Security modification)
+
+# Context switching
+oc-ai ai "switch to production context"
+> Command: oc config use-context production
+> Safety: 2/5 (Low - Context change)
+```
+
+### 5. Advanced Operations
+
+```bash
+# Rolling updates
+oc-ai ai "rollout new version of frontend deployment"
+> Command: oc rollout restart deployment/frontend
+> Safety: 3/5 (Medium - Service impact)
+
+# Port forwarding
+oc-ai ai "forward local port 8080 to service frontend"
+> Command: oc port-forward svc/frontend 8080:80
+> Safety: 1/5 (Safe - Local only)
+```
+
+### 6. Using Multiple Kubeconfig Files
+
+```bash
+# Using specific kubeconfig
 oc-ai --kubeconfig=/path/to/kubeconfig ai "list all pods"
-export KUBECONFIG=/path/to/kubeconfig
-oc-ai ai "list pods"
+> Command: oc get pods --all-namespaces
+> Safety: 1/5 (Safe - Read-only)
 
-# Windows (PowerShell)
-oc-ai.exe --kubeconfig="C:\path\to\kubeconfig" ai "list all pods"
-$env:KUBECONFIG="C:\path\to\kubeconfig"
-oc-ai.exe ai "list pods"
-
-# Windows (CMD)
-oc-ai.exe --kubeconfig="C:\path\to\kubeconfig" ai "list all pods"
-set KUBECONFIG=C:\path\to\kubeconfig
-oc-ai.exe ai "list pods"
+# Interactive mode
+oc-ai interactive
+> show pods with high memory usage
+Command: oc adm top pods --sort-by=memory
+Safety: 1/5 (Safe - Read-only)
+Execute? [y/N/r]: y
 ```
+
+### 7. Interactive Mode
+
+```bash
+# Start interactive session
+oc-ai interactive
+
+# Example session:
+> show pods with high memory usage
+Command: kubectl top pods --sort-by=memory
+Safety: 1/5 (Safe - Read-only)
+Execute? [Y/n]: y
+
+> scale frontend deployment
+Command: kubectl scale deployment frontend --replicas=3
+Safety: 3/5 (Medium - Resource modification)
+Execute? [Y/n/r]: r
+Enter revised command: kubectl scale deployment frontend --replicas=5
+
+> exit
+```
+
+### 8. Template Management
+
+```bash
+# List available templates
+oc-ai template list
+
+# Show template details
+oc-ai template show deploy-app
+
+# Run template with parameters
+oc-ai template run deploy-app --name=myapp --replicas=3
+```
+
+## 🔧 Configuration
 
 ### Configuration File Locations
 
@@ -107,7 +203,7 @@ The configuration file (`config.yaml`) can be placed in:
 - Windows: `%APPDATA%\oc-ai\config.yaml`
 - Current directory: `./config.yaml`
 
-Example configuration:
+### Example Configuration
 ```yaml
 # OpenAI Settings
 openai_key: "sk-..." # Or use OPENAI_API_KEY env var
@@ -129,59 +225,13 @@ export OPENAI_API_KEY="your-api-key"
 export KUBECONFIG="/path/to/kubeconfig"
 export OC_AI_DEFAULT_MODEL="gpt-4-turbo"
 
-# Windows (PowerShell)
+# Windows PowerShell
 $env:OPENAI_API_KEY="your-api-key"
 $env:KUBECONFIG="C:\path\to\kubeconfig"
 $env:OC_AI_DEFAULT_MODEL="gpt-4-turbo"
-
-# Windows (CMD)
-set OPENAI_API_KEY=your-api-key
-set KUBECONFIG=C:\path\to\kubeconfig
-set OC_AI_DEFAULT_MODEL=gpt-4-turbo
 ```
 
-### Interactive Mode
-
-```bash
-# Linux/macOS
-oc-ai interactive
-
-# Windows
-oc-ai.exe interactive
-```
-
-Example session:
-```
-🤖 OC-AI Interactive Shell
-
-> show pods with high memory usage
-Command: kubectl top pods --sort-by=memory
-Safety: 1/5 (Safe - Read-only)
-Execute? [Y/n]: y
-
-NAME         CPU    MEMORY
-pod-1        120m   1.2Gi
-pod-2        85m    800Mi
-
-> exit
-Goodbye! 👋
-```
-
-### Template Management
-
-```bash
-# Linux/macOS
-oc-ai template list
-oc-ai template show deploy-app
-oc-ai template run deploy-app --name=myapp --replicas=3
-
-# Windows
-oc-ai.exe template list
-oc-ai.exe template show deploy-app
-oc-ai.exe template run deploy-app --name=myapp --replicas=3
-```
-
-### Safety Levels
+## 🛡️ Safety Levels
 
 Every command is assigned a safety level from 1 to 5:
 
@@ -193,65 +243,22 @@ Every command is assigned a safety level from 1 to 5:
 | 4 | High | Resource deletion | `delete pod` | Warning + Confirm |
 | 5 | Critical | Cluster-wide impact | `delete namespace` | Double confirm |
 
-## 🔧 Development
+## 🔍 Debugging Tips
 
-### Project Structure
-
-```
-oc-ai/
-├── cmd/                    # Command implementations
-│   ├── root.go            # Root command and initialization
-│   ├── ai.go              # AI command generation
-│   ├── explain.go         # Command explanation
-│   ├── interactive.go     # Interactive shell
-│   ├── history.go         # Command history
-│   ├── template.go        # Template management
-│   └── compat/           # CLI compatibility
-├── internal/
-│   ├── ai/               # AI integration
-│   │   ├── client.go     # OpenAI client
-│   │   ├── prompt.go     # Prompt templates
-│   │   └── context.go    # Context management
-│   ├── cli/              # CLI abstraction
-│   │   ├── client.go     # Base interface
-│   │   ├── detector.go   # CLI detection
-│   │   └── executor.go   # Command execution
-│   └── config/           # Configuration
-└── README.md
-```
-
-### Building
-
+1. Use `--dry-run` flag to see commands without executing them:
 ```bash
-# Linux/macOS
-go build -o oc-ai
-
-# Windows
-go build -o oc-ai.exe
-
-# Production build with version
-$VERSION=$(git describe --tags)
-go build -ldflags="-X main.Version=$VERSION" -o oc-ai
+oc-ai --dry-run ai "scale frontend deployment to 3 replicas"
 ```
 
-### Running Tests
-
+2. Use `-y` flag to auto-confirm commands (use with caution):
 ```bash
-# Run all tests
-go test ./...
-
-# Run with coverage
-go test -coverprofile=coverage.txt ./...
-go tool cover -html=coverage.txt
+oc-ai -y ai "restart all pods in namespace"
 ```
 
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Check command history:
+```bash
+oc-ai history
+```
 
 ## 📝 License
 

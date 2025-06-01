@@ -13,6 +13,7 @@ type Config struct {
 	DefaultModel   string `mapstructure:"default_model"`
 	ConfirmExecute bool   `mapstructure:"confirm_execute"`
 	HistoryLimit   int    `mapstructure:"history_limit"`
+	PreferredCLI   string `mapstructure:"preferred_cli"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -33,11 +34,13 @@ func LoadConfig() (*Config, error) {
 	viper.AutomaticEnv()
 	viper.BindEnv("openai_key")
 	viper.BindEnv("default_model")
+	viper.BindEnv("preferred_cli")
 
 	// Defaults
 	viper.SetDefault("default_model", "gpt-4-turbo")
 	viper.SetDefault("confirm_execute", true)
 	viper.SetDefault("history_limit", 100)
+	viper.SetDefault("preferred_cli", "auto")
 
 	// Read config
 	if err := viper.ReadInConfig(); err != nil {

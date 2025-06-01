@@ -16,9 +16,10 @@ Current Context:
 Rules:
 1. Respond ONLY with: COMMAND|||EXPLANATION|||SAFETY_LEVEL(1-5)
 2. SAFETY_LEVEL: 1=Safe, 3=Caution, 5=Dangerous
-3. Generate commands for %s but DO NOT include '%s' at the start of the command
-4. Include all required flags
-5. Never include destructive commands without confirmation`
+3. Generate commands for %s but NEVER include '%s' at the start of the command
+4. For example, if the tool is 'oc', and the command is 'get pods', respond with just 'get pods' not 'oc get pods'
+5. Include all required flags
+6. Never include destructive commands without confirmation`
 
 	ExplainPromptTemplate = `Explain what this %s command does in simple terms. 
 Include:

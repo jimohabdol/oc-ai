@@ -31,9 +31,9 @@ to commands with safety checks and interactive features. Works with both 'oc' an
 		}
 
 		kubeconfig, _ := cmd.Flags().GetString("kubeconfig")
-		activeTool, cliClient, err = cli.DetectCLI(kubeconfig)
+		activeTool, cliClient, err = cli.DetectCLI(kubeconfig, cfg.PreferredCLI)
 		if err != nil {
-			return fmt.Errorf("no oc or kubectl found in PATH")
+			return fmt.Errorf("no suitable CLI tool found: %w", err)
 		}
 
 		return nil
