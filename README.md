@@ -25,9 +25,10 @@ OC-AI enhances your OpenShift (`oc`) and Kubernetes (`kubectl`) CLI experience w
 
 ### Quick Install
 
+#### Linux/macOS
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/oc-ai.git
+git clone https://github.com/jimohabdol/oc-ai.git
 cd oc-ai
 
 # Build
@@ -40,122 +41,73 @@ export OPENAI_API_KEY="your-api-key"
 sudo mv oc-ai /usr/local/bin/
 ```
 
+#### Windows
+```powershell
+# Clone repository
+git clone https://github.com/jimohabdol/oc-ai.git
+cd oc-ai
+
+# Build
+go build -o oc-ai.exe
+
+# Set OpenAI API key (PowerShell)
+$env:OPENAI_API_KEY="your-api-key"
+
+# Optional: Add to PATH
+# 1. Create a directory for binaries
+mkdir "$env:USERPROFILE\bin"
+# 2. Move the executable
+move oc-ai.exe "$env:USERPROFILE\bin"
+# 3. Add to PATH (requires admin PowerShell)
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "User") + ";$env:USERPROFILE\bin",
+    "User"
+)
+```
+
 ## 📋 Detailed Usage Guide
 
 ### Basic Commands
 
 ```bash
-# Natural language command generation
+# Linux/macOS
 oc-ai ai "list all pods that have crashed in the last hour"
 oc-ai ai "scale the frontend deployment to 3 replicas"
 
-# Using a specific kubeconfig file
+# Windows (PowerShell/CMD)
+oc-ai.exe ai "list all pods that have crashed in the last hour"
+oc-ai.exe ai "scale the frontend deployment to 3 replicas"
+```
+
+### Using Custom Kubeconfig
+
+```bash
+# Linux/macOS
 oc-ai --kubeconfig=/path/to/kubeconfig ai "list all pods"
+export KUBECONFIG=/path/to/kubeconfig
+oc-ai ai "list pods"
 
-# Using a specific context
-oc-ai --context=production ai "show deployments"
+# Windows (PowerShell)
+oc-ai.exe --kubeconfig="C:\path\to\kubeconfig" ai "list all pods"
+$env:KUBECONFIG="C:\path\to\kubeconfig"
+oc-ai.exe ai "list pods"
 
-# Command explanation
-oc-ai explain "oc delete pod --force --grace-period=0"
-
-# Interactive mode with custom kubeconfig
-oc-ai --kubeconfig=/path/to/kubeconfig interactive
-
-# View command history
-oc-ai history
+# Windows (CMD)
+oc-ai.exe --kubeconfig="C:\path\to\kubeconfig" ai "list all pods"
+set KUBECONFIG=C:\path\to\kubeconfig
+oc-ai.exe ai "list pods"
 ```
 
-### Cluster Configuration
+### Configuration File Locations
 
-OC-AI supports multiple ways to specify your cluster configuration:
+The configuration file (`config.yaml`) can be placed in:
 
-1. Command-line flags:
-   ```bash
-   # Using specific kubeconfig file
-   oc-ai --kubeconfig=/path/to/kubeconfig ai "list pods"
+- Linux/macOS: `~/.config/oc-ai/config.yaml`
+- Windows: `%APPDATA%\oc-ai\config.yaml`
+- Current directory: `./config.yaml`
 
-   # Using specific context
-   oc-ai --context=staging ai "list pods"
-
-   # Using specific namespace
-   oc-ai -n my-namespace ai "list pods"
-   ```
-
-2. Environment variables:
-   ```bash
-   # Set kubeconfig path
-   export KUBECONFIG=/path/to/kubeconfig
-   oc-ai ai "list pods"
-   ```
-
-3. Default location:
-   - If not specified, uses `~/.kube/config`
-
-The precedence order is:
-1. Command-line flags
-2. Environment variables
-3. Default location
-
-### Safety Levels Explained
-
-Every command is assigned a safety level from 1 to 5:
-
-| Level | Risk | Description | Example | Behavior |
-|-------|------|-------------|----------|-----------|
-| 1 | Safe | Read-only operations | `get pods` | Auto-execute |
-| 2 | Low | Non-destructive changes | `label pod` | Auto-execute |
-| 3 | Medium | Resource modifications | `scale deployment` | Confirm |
-| 4 | High | Resource deletion | `delete pod` | Warning + Confirm |
-| 5 | Critical | Cluster-wide impact | `delete namespace` | Double confirm |
-
-### Interactive Mode Features
-
-```bash
-$ oc-ai interactive
-🤖 OC-AI Interactive Shell
-
-> show pods with high memory usage
-Command: kubectl top pods --sort-by=memory
-Safety: 1/5 (Safe - Read-only)
-Execute? [Y/n]: y
-
-NAME         CPU    MEMORY
-pod-1        120m   1.2Gi
-pod-2        85m    800Mi
-
-> restart the pod-1 pod
-Command: kubectl delete pod pod-1
-Safety: 4/5 (High - Pod will be deleted)
-⚠️  Warning: This is a destructive operation
-Execute? [y/N]: n
-
-> exit
-Goodbye! 👋
-```
-
-### Template Management
-
-Create and manage reusable command templates:
-
-```bash
-# List available templates
-oc-ai template list
-
-# View template details
-oc-ai template show deploy-app
-
-# Execute template with parameters
-oc-ai template run deploy-app \
-  --name=myapp \
-  --image=nginx:1.21 \
-  --replicas=3 \
-  --namespace=production
-```
-
-### Configuration
-
-Create `~/.config/oc-ai/config.yaml`:
-
+Example configuration:
 ```yaml
 # OpenAI Settings
 openai_key: "sk-..." # Or use OPENAI_API_KEY env var
@@ -167,29 +119,79 @@ history_limit: 100     # Number of history entries to keep
 
 # CLI Settings
 preferred_cli: "auto"  # "oc", "kubectl", or "auto"
-
-# Cluster Settings (optional)
-default_kubeconfig: "~/.kube/config"  # Default kubeconfig path
-default_context: ""                   # Default context to use
 ```
 
-### Error Handling
-
-The tool provides clear error messages and handling:
+### Environment Variables
 
 ```bash
-# Invalid safety level
-Error: invalid safety level "6": safety level must be between 1 and 5
+# Linux/macOS
+export OPENAI_API_KEY="your-api-key"
+export KUBECONFIG="/path/to/kubeconfig"
+export OC_AI_DEFAULT_MODEL="gpt-4-turbo"
 
-# Missing required template parameter
-Error: parameter "name" is required for template "deploy-app"
+# Windows (PowerShell)
+$env:OPENAI_API_KEY="your-api-key"
+$env:KUBECONFIG="C:\path\to\kubeconfig"
+$env:OC_AI_DEFAULT_MODEL="gpt-4-turbo"
 
-# History file access error
-Warning: Failed to save command to history: permission denied
-
-# Command parsing error
-Error: unterminated quoted string in command
+# Windows (CMD)
+set OPENAI_API_KEY=your-api-key
+set KUBECONFIG=C:\path\to\kubeconfig
+set OC_AI_DEFAULT_MODEL=gpt-4-turbo
 ```
+
+### Interactive Mode
+
+```bash
+# Linux/macOS
+oc-ai interactive
+
+# Windows
+oc-ai.exe interactive
+```
+
+Example session:
+```
+🤖 OC-AI Interactive Shell
+
+> show pods with high memory usage
+Command: kubectl top pods --sort-by=memory
+Safety: 1/5 (Safe - Read-only)
+Execute? [Y/n]: y
+
+NAME         CPU    MEMORY
+pod-1        120m   1.2Gi
+pod-2        85m    800Mi
+
+> exit
+Goodbye! 👋
+```
+
+### Template Management
+
+```bash
+# Linux/macOS
+oc-ai template list
+oc-ai template show deploy-app
+oc-ai template run deploy-app --name=myapp --replicas=3
+
+# Windows
+oc-ai.exe template list
+oc-ai.exe template show deploy-app
+oc-ai.exe template run deploy-app --name=myapp --replicas=3
+```
+
+### Safety Levels
+
+Every command is assigned a safety level from 1 to 5:
+
+| Level | Risk | Description | Example | Behavior |
+|-------|------|-------------|----------|-----------|
+| 1 | Safe | Read-only operations | `get pods` | Auto-execute |
+| 2 | Low | Non-destructive changes | `label pod` | Auto-execute |
+| 3 | Medium | Resource modifications | `scale deployment` | Confirm |
+| 4 | High | Resource deletion | `delete pod` | Warning + Confirm |
+| 5 | Critical | Cluster-wide impact | `delete namespace` | Double confirm |
 
 ## 🔧 Development
 
@@ -221,15 +223,26 @@ oc-ai/
 ### Building
 
 ```bash
-# Development build
+# Linux/macOS
 go build -o oc-ai
 
-# Production build with version
-VERSION=$(git describe --tags)
-go build -ldflags="-X main.Version=$VERSION" -o oc-ai
+# Windows
+go build -o oc-ai.exe
 
-# Run tests
+# Production build with version
+$VERSION=$(git describe --tags)
+go build -ldflags="-X main.Version=$VERSION" -o oc-ai
+```
+
+### Running Tests
+
+```bash
+# Run all tests
 go test ./...
+
+# Run with coverage
+go test -coverprofile=coverage.txt ./...
+go tool cover -html=coverage.txt
 ```
 
 ### Contributing
