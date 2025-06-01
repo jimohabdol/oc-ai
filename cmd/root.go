@@ -30,7 +30,8 @@ to commands with safety checks and interactive features. Works with both 'oc' an
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		activeTool, cliClient, err = cli.DetectCLI()
+		kubeconfig, _ := cmd.Flags().GetString("kubeconfig")
+		activeTool, cliClient, err = cli.DetectCLI(kubeconfig)
 		if err != nil {
 			return fmt.Errorf("no oc or kubectl found in PATH")
 		}
@@ -66,6 +67,7 @@ func init() {
 	// Inherited flags from oc/kubectl
 	rootCmd.PersistentFlags().StringP("namespace", "n", "", "Namespace to use")
 	rootCmd.PersistentFlags().String("context", "", "Context to use")
+	rootCmd.PersistentFlags().String("kubeconfig", "", "Path to the kubeconfig file to use")
 	rootCmd.PersistentFlags().Bool("insecure-skip-tls-verify", false, "Skip TLS verification")
 }
 

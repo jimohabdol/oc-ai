@@ -5,15 +5,15 @@ import (
 	"os/exec"
 )
 
-func DetectCLI() (string, CLI, error) {
+func DetectCLI(kubeconfig string) (string, CLI, error) {
 	// Check for oc first
 	if path, err := exec.LookPath("oc"); err == nil {
-		return "oc", &OCClient{BaseCLI: BaseCLI{command: path}}, nil
+		return "oc", &OCClient{BaseCLI: BaseCLI{command: path, kubeconfig: kubeconfig}}, nil
 	}
 
 	// Fall back to kubectl
 	if path, err := exec.LookPath("kubectl"); err == nil {
-		return "kubectl", &KubectlClient{BaseCLI: BaseCLI{command: path}}, nil
+		return "kubectl", &KubectlClient{BaseCLI: BaseCLI{command: path, kubeconfig: kubeconfig}}, nil
 	}
 
 	return "", nil, fmt.Errorf("neither oc nor kubectl found in PATH")

@@ -12,6 +12,7 @@ OC-AI enhances your OpenShift (`oc`) and Kubernetes (`kubectl`) CLI experience w
 - **🎯 Smart Templates**: Parameterized command templates with validation
 - **🔒 Error Handling**: Comprehensive error handling and user feedback
 - **⚡ Zero Latency**: Direct command passthrough for native CLI performance
+- **🔑 Flexible Authentication**: Support for multiple kubeconfig files and contexts
 
 ## 🚀 Installation
 
@@ -20,6 +21,7 @@ OC-AI enhances your OpenShift (`oc`) and Kubernetes (`kubectl`) CLI experience w
 - Go 1.21 or higher
 - OpenShift CLI (`oc`) or Kubernetes CLI (`kubectl`)
 - OpenAI API key
+- Valid kubeconfig file
 
 ### Quick Install
 
@@ -47,15 +49,52 @@ sudo mv oc-ai /usr/local/bin/
 oc-ai ai "list all pods that have crashed in the last hour"
 oc-ai ai "scale the frontend deployment to 3 replicas"
 
+# Using a specific kubeconfig file
+oc-ai --kubeconfig=/path/to/kubeconfig ai "list all pods"
+
+# Using a specific context
+oc-ai --context=production ai "show deployments"
+
 # Command explanation
 oc-ai explain "oc delete pod --force --grace-period=0"
 
-# Interactive mode
-oc-ai interactive
+# Interactive mode with custom kubeconfig
+oc-ai --kubeconfig=/path/to/kubeconfig interactive
 
 # View command history
 oc-ai history
 ```
+
+### Cluster Configuration
+
+OC-AI supports multiple ways to specify your cluster configuration:
+
+1. Command-line flags:
+   ```bash
+   # Using specific kubeconfig file
+   oc-ai --kubeconfig=/path/to/kubeconfig ai "list pods"
+
+   # Using specific context
+   oc-ai --context=staging ai "list pods"
+
+   # Using specific namespace
+   oc-ai -n my-namespace ai "list pods"
+   ```
+
+2. Environment variables:
+   ```bash
+   # Set kubeconfig path
+   export KUBECONFIG=/path/to/kubeconfig
+   oc-ai ai "list pods"
+   ```
+
+3. Default location:
+   - If not specified, uses `~/.kube/config`
+
+The precedence order is:
+1. Command-line flags
+2. Environment variables
+3. Default location
 
 ### Safety Levels Explained
 
@@ -128,6 +167,10 @@ history_limit: 100     # Number of history entries to keep
 
 # CLI Settings
 preferred_cli: "auto"  # "oc", "kubectl", or "auto"
+
+# Cluster Settings (optional)
+default_kubeconfig: "~/.kube/config"  # Default kubeconfig path
+default_context: ""                   # Default context to use
 ```
 
 ### Error Handling
