@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -21,10 +22,14 @@ type BaseCLI struct {
 
 func (c *BaseCLI) Execute(cmd string) (string, error) {
 	args := strings.Split(cmd, " ")
+
+	// Set kubeconfig as environment variable if specified
+	command := exec.Command(c.command, args...)
 	if c.kubeconfig != "" {
-		args = append([]string{"--kubeconfig", c.kubeconfig}, args...)
+		command.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
 	}
-	output, err := exec.Command(c.command, args...).CombinedOutput()
+
+	output, err := command.CombinedOutput()
 	return string(output), err
 }
 
