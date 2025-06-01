@@ -19,15 +19,25 @@ func NewExecutor(cli CLI) *Executor {
 	return &Executor{cli: cli}
 }
 
-func parseCommand(command string) []string {
+// ParseCommand splits a command string into arguments, respecting quotes
+func ParseCommand(command string) []string {
 	var args []string
 	var currentArg strings.Builder
 	inQuotes := false
+	var quoteChar rune
 
 	for _, char := range command {
 		switch char {
 		case '"', '\'':
-			inQuotes = !inQuotes
+			if inQuotes && char == quoteChar {
+				inQuotes = false
+				quoteChar = 0
+			} else if !inQuotes {
+				inQuotes = true
+				quoteChar = char
+			} else {
+				currentArg.WriteRune(char)
+			}
 		case ' ':
 			if !inQuotes {
 				if currentArg.Len() > 0 {
@@ -50,7 +60,7 @@ func parseCommand(command string) []string {
 }
 
 func (e *Executor) ExecuteInteractive(command string) error {
-	args := parseCommand(command)
+	args := ParseCommand(command)
 	cmd := exec.Command(e.cli.(*BaseCLI).command, args...)
 
 	// Start the command with a pty

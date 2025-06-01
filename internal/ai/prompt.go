@@ -16,7 +16,7 @@ Current Context:
 Rules:
 1. Respond ONLY with: COMMAND|||EXPLANATION|||SAFETY_LEVEL(1-5)
 2. SAFETY_LEVEL: 1=Safe, 3=Caution, 5=Dangerous
-3. Generate %s commands only
+3. Generate commands for %s but DO NOT include '%s' at the start of the command
 4. Include all required flags
 5. Never include destructive commands without confirmation`
 
@@ -37,6 +37,7 @@ func BuildSystemPrompt(tool string, ctx ClusterContext) string {
 		ctx.Namespace,
 		ctx.User,
 		ctx.Server,
+		tool,
 		tool)
 }
 

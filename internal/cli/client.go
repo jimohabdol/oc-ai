@@ -21,7 +21,7 @@ type BaseCLI struct {
 }
 
 func (c *BaseCLI) Execute(cmd string) (string, error) {
-	args := strings.Split(cmd, " ")
+	args := ParseCommand(cmd)
 
 	// Set kubeconfig as environment variable if specified
 	command := exec.Command(c.command, args...)
@@ -33,12 +33,54 @@ func (c *BaseCLI) Execute(cmd string) (string, error) {
 	return string(output), err
 }
 
+// parseCommand splits a command string into arguments, respecting quotes
+func parseCommand(command string) []string {
+	var args []string
+	var currentArg strings.Builder
+	inQuotes := false
+	var quoteChar rune
+
+	for _, char := range command {
+		switch char {
+		case '"', '\'':
+			if inQuotes && char == quoteChar {
+				inQuotes = false
+				quoteChar = 0
+			} else if !inQuotes {
+				inQuotes = true
+				quoteChar = char
+			} else {
+				currentArg.WriteRune(char)
+			}
+		case ' ':
+			if !inQuotes {
+				if currentArg.Len() > 0 {
+					args = append(args, currentArg.String())
+					currentArg.Reset()
+				}
+			} else {
+				currentArg.WriteRune(char)
+			}
+		default:
+			currentArg.WriteRune(char)
+		}
+	}
+
+	if currentArg.Len() > 0 {
+		args = append(args, currentArg.String())
+	}
+
+	return args
+}
+
 func (c *BaseCLI) GetContext() (map[string]string, error) {
 	args := []string{"config", "view", "-o", "json"}
+	command := exec.Command(c.command, args...)
 	if c.kubeconfig != "" {
-		args = append([]string{"--kubeconfig", c.kubeconfig}, args...)
+		command.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
 	}
-	output, err := exec.Command(c.command, args...).CombinedOutput()
+
+	output, err := command.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config: %w", err)
 	}
@@ -86,7 +128,11 @@ func (c *BaseCLI) GetContext() (map[string]string, error) {
 }
 
 func (c *BaseCLI) GetVersion() (string, error) {
-	output, err := exec.Command(c.command, "version").CombinedOutput()
+	command := exec.Command(c.command, "version")
+	if c.kubeconfig != "" {
+		command.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
+	}
+	output, err := command.CombinedOutput()
 	return string(output), err
 }
 

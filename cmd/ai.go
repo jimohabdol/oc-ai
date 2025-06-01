@@ -32,6 +32,11 @@ var aiCmd = &cobra.Command{
 			return err
 		}
 
+		// Remove duplicate CLI tool name if present
+		if strings.HasPrefix(command, activeTool+" ") {
+			command = strings.TrimPrefix(command, activeTool+" ")
+		}
+
 		fmt.Printf("\nExplanation: %s\n", explanation)
 		fmt.Printf("Safety Level: %s/5\n", safety)
 		fmt.Printf("Command: %s %s\n\n", activeTool, command)
