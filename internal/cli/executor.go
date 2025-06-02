@@ -91,6 +91,9 @@ func (e *Executor) ExecuteInteractive(command string) error {
 	for scanner.Scan() {
 		fmt.Println(scanner.Text())
 	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading command output: %w", err)
+	}
 
 	return cmd.Wait()
 }

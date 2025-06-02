@@ -1,8 +1,11 @@
 package ai
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"oc-ai/internal/cli"
+	"time"
 )
 
 type ClusterContext struct {
@@ -13,8 +16,8 @@ type ClusterContext struct {
 }
 
 type ContextManager struct {
-	cli    cli.CLI
-	cache  ClusterContext
+	cli   cli.CLI
+	cache ClusterContext
 }
 
 func NewContextManager(cli cli.CLI) *ContextManager {
@@ -22,15 +25,19 @@ func NewContextManager(cli cli.CLI) *ContextManager {
 }
 
 func (cm *ContextManager) GetCurrentContext() ClusterContext {
-	// In a real implementation, you might want to cache this
-	// and only refresh periodically
 	cm.UpdateContext()
 	return cm.cache
 }
 
 func (cm *ContextManager) UpdateContext() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	output, err := cm.cli.Execute("config view -o json")
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			fmt.Printf("Warning: Context update timed out after 5s\n")
+		}
 		return
 	}
 
@@ -53,6 +60,7 @@ func (cm *ContextManager) UpdateContext() {
 	}
 
 	if err := json.Unmarshal([]byte(output), &config); err != nil {
+		fmt.Printf("Warning: Failed to parse context: %v\n", err)
 		return
 	}
 

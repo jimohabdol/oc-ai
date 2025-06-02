@@ -1,11 +1,12 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
+	"time"
 )
 
 type CLI interface {
@@ -20,68 +21,49 @@ type BaseCLI struct {
 	kubeconfig string
 }
 
-func (c *BaseCLI) Execute(cmd string) (string, error) {
-	args := ParseCommand(cmd)
+const defaultTimeout = 30 * time.Second
 
-	// Set kubeconfig as environment variable if specified
-	command := exec.Command(c.command, args...)
+func (c *BaseCLI) Execute(cmd string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	args := ParseCommand(cmd)
+	command := exec.CommandContext(ctx, c.command, args...)
+
+	// Set up environment
+	env := os.Environ()
 	if c.kubeconfig != "" {
-		command.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
+		env = append(env, fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
 	}
+	command.Env = env
 
 	output, err := command.CombinedOutput()
-	return string(output), err
-}
-
-// parseCommand splits a command string into arguments, respecting quotes
-func parseCommand(command string) []string {
-	var args []string
-	var currentArg strings.Builder
-	inQuotes := false
-	var quoteChar rune
-
-	for _, char := range command {
-		switch char {
-		case '"', '\'':
-			if inQuotes && char == quoteChar {
-				inQuotes = false
-				quoteChar = 0
-			} else if !inQuotes {
-				inQuotes = true
-				quoteChar = char
-			} else {
-				currentArg.WriteRune(char)
-			}
-		case ' ':
-			if !inQuotes {
-				if currentArg.Len() > 0 {
-					args = append(args, currentArg.String())
-					currentArg.Reset()
-				}
-			} else {
-				currentArg.WriteRune(char)
-			}
-		default:
-			currentArg.WriteRune(char)
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return string(output), fmt.Errorf("command timed out after %s: %w", defaultTimeout, err)
 		}
+		return string(output), err
 	}
 
-	if currentArg.Len() > 0 {
-		args = append(args, currentArg.String())
-	}
-
-	return args
+	return string(output), nil
 }
 
 func (c *BaseCLI) GetContext() (map[string]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	args := []string{"config", "view", "-o", "json"}
-	command := exec.Command(c.command, args...)
+	command := exec.CommandContext(ctx, c.command, args...)
+
 	if c.kubeconfig != "" {
 		command.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
 	}
 
 	output, err := command.CombinedOutput()
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, fmt.Errorf("context fetch timed out after 5s: %w", err)
+		}
 		return nil, fmt.Errorf("failed to get config: %w", err)
 	}
 
@@ -107,36 +89,45 @@ func (c *BaseCLI) GetContext() (map[string]string, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	ctx := make(map[string]string)
+	result := make(map[string]string)
 	for _, c := range config.Contexts {
 		if c.Name == config.CurrentContext {
-			ctx["namespace"] = c.Context.Namespace
-			ctx["user"] = c.Context.User
-			ctx["cluster"] = c.Context.Cluster
+			result["namespace"] = c.Context.Namespace
+			result["user"] = c.Context.User
+			result["cluster"] = c.Context.Cluster
 			break
 		}
 	}
 
 	for _, cluster := range config.Clusters {
-		if cluster.Name == ctx["cluster"] {
-			ctx["server"] = cluster.Cluster.Server
+		if cluster.Name == result["cluster"] {
+			result["server"] = cluster.Cluster.Server
 			break
 		}
 	}
 
-	return ctx, nil
+	return result, nil
 }
 
 func (c *BaseCLI) GetVersion() (string, error) {
-	command := exec.Command(c.command, "version")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, c.command, "version")
 	if c.kubeconfig != "" {
 		command.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", c.kubeconfig))
 	}
+
 	output, err := command.CombinedOutput()
-	return string(output), err
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("version check timed out after 5s: %w", err)
+		}
+		return "", err
+	}
+	return string(output), nil
 }
 
 func (c *BaseCLI) Supports(feature string) bool {
-	// Implementation varies between oc and kubectl
 	return false
 }
